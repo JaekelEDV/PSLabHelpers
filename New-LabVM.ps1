@@ -24,6 +24,7 @@ Function New-LabVM
 {
     [CmdletBinding()]
     param (
+        $WarningPreference = 'Stop',
         [Parameter(Mandatory = $true)][ValidateSet('Server2012R2', 'Server2016', 'Server2016_core', 'Windows10')][string]$OSType,
         [Parameter(Mandatory = $true)][string] $VMName)
 
@@ -43,6 +44,43 @@ Function New-LabVM
     }
     else
     {write-host 'Hyper-V Module already loaded' -ForegroundColor Yellow
+    }
+    #endregion
+    #region Check if chosen Master.vhdx exists
+    if ($OSType -eq 'Server2012R2')
+    {if (Test-Path -Path $MasterVHDXServer2012R2)
+        {Write-Verbose -Message 'Master_2012R2 found.'
+        }
+        else
+        {Write-Warning -Message 'Cannot find master_2012R2.vhdx. Check filename or create it.'
+        }
+    }
+
+    if ($OSType -eq 'Server2016')
+    {if (Test-Path -Path $MasterVHDXServer2016)
+        {Write-Verbose -Message 'Master_2016 found.'
+        }
+        else
+        {Write-Warning -Message 'Cannot find master_2016.vhdx. Check filename or create it.'
+        }
+    }
+
+    if ($OSType -eq 'Server2016_core')
+    {if (Test-Path -Path $MasterVHDXServer2016core)
+        {Write-Verbose -Message 'Master_2016_core found.'
+        }
+        else
+        {Write-Warning -Message 'Cannot find master_2016_core.vhdx. Check filename or create it.'
+        }
+    }
+
+    if ($OSType -eq 'Windows10')
+    {if (Test-Path -Path $MasterVHDXClient)
+        {Write-Verbose -Message 'Master_Win10 found.'
+        }
+        else
+        {Write-Warning -Message 'Cannot find master_Win10.vhdx. Check filename or create it.'
+        }
     }
     #endregion
 
