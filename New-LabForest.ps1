@@ -48,7 +48,7 @@ function New-LabForest {
         New-LabForest -VM 'vMACHINE' -ForestName 'test.local' -DCName 'DC01'
 
     .LINK
-        TODO: Online version: https://github.com/JaekelEDV/
+        Online version: https://github.com/JaekelEDV/PSLabHelpers/blob/master/New-LabForest.ps1
 
     .NOTES
         The idea of New-LabForest is to be run against a VM with an installed Server-OS.
