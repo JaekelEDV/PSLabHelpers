@@ -16,7 +16,7 @@ function New-LabADSiteSubnet {
         New-LabADSiteSubnet -CSVPath "c:\ad_sites_subnets.csv"
 
     .LINK
-        TODO: Online version: https://github.com/JaekelEDV/
+        Online version: https://github.com/JaekelEDV/PSLabHelpers/blob/master/New-LabADSite.ps1
 
     .NOTES
     New-LabADSiteSubnet can also put all the sites in the DEFAULTIPSITELINK.
