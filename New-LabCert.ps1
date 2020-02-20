@@ -20,16 +20,17 @@
 #requires -Version 3.0 -Modules PKI
 
 #region Parameter Section
-Function New-LabCert
-{
+Function New-LabCert {
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory = $true, HelpMessage = 'Enter DNSName of the Host')][string] $DNSName)
+        [Parameter(Mandatory = $true, HelpMessage = 'Enter DNSName of the Host')]
+        [string] $DNSName
+    )
+
     [string] $certstorelocation = 'Cert:\LocalMachine\'
     #endregion
 
     #region Create the selfsigned Certificate
-
     New-SelfSignedCertificate -CertStoreLocation $certstorelocation\My -DnsName $DNSName
     Write-Verbose -Message "Creating Selfsigned Computer Certificate for $DNSName"
     #endregion
@@ -37,17 +38,31 @@ Function New-LabCert
     #region Export the certificate to filesystem
 
     Set-Location -Path Cert:\LocalMachine\My
-    $cert = Get-ChildItem -Path .\ | Where-Object -EQ -Property Subject -Value "cn=$DNSName"
+    $cert = Get-ChildItem -Path .\ |
+    Where-Object -EQ -Property Subject -Value "cn=$DNSName"
     $thumbprint = ($cert).Thumbprint
 
-    $pwd = ConvertTo-SecureString -String "Pa$$w0rd" -Force -AsPlainText
-    Export-PfxCertificate -Cert $certstorelocation\My\$thumbprint -FilePath $env:HOMEDRIVE\$DNSName.pfx -Password $pwd
+    $pass = ConvertTo-SecureString -String "Pa$$w0rd" -Force -AsPlainText
+
+    $exportPfxCertificateSplat = @{
+        Cert     = "$certstorelocation\My\$thumbprint"
+        Password = $pass
+        FilePath = "$env:HOMEDRIVE\$DNSName.pfx"
+    }
+
+    Export-PfxCertificate @exportPfxCertificateSplat
     Write-Verbose -Message "Export the Certificate to $env:HOMEDRIVE"
     #endregion
 
     #region Import the certificate to Trusted Root
 
-    Import-PfxCertificate -FilePath $env:HOMEDRIVE\$DNSName.pfx -CertStoreLocation $certstorelocation\Root -Password $pwd
+    $importPfxCertificateSplat = @{
+        FilePath          = "$env:HOMEDRIVE\$DNSName.pfx"
+        Password          = $pass
+        CertStoreLocation = "$certstorelocation\Root"
+    }
+
+    Import-PfxCertificate @importPfxCertificateSplat
     Write-Verbose -Message 'Import the Certificate to Trusted Root'
     #endregion
 
