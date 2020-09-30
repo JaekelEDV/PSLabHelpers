@@ -90,7 +90,7 @@ function New-LabForest {
     $InformationPreference = 'Continue'
     $NetBIOSName = $ForestName.Split('.')[0]
     $VMName = (Get-VM -Name $VM).Name
-    $LocalCreds = Get-Credential -UserName 'administrator' -Message 'Please enter Hyper-V-Admin-Credentials!'
+    $LocalCreds = Get-Credential -UserName 'administrator' -Message 'Please enter Local-VM-Admin-Credentials!'
     $DomainCreds = Get-Credential -UserName "$NetBIOSName\administrator" -Message 'Please enter Domain-Admin-Credentials!'
     #Getting DSRM-Creds, extracting password, converting password to securestring
     $DSRMCreds = Get-Credential -UserName 'administrator' -Message 'Please enter DSRM-Credentials!'
