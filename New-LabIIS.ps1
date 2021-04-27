@@ -62,7 +62,7 @@ function New-LabIIS {
 
     Invoke-Command -VMName $VM -Credential $DomainCreds -ScriptBlock {
 
-        $IISFeatures = "ADCS-Enroll-Web-Pol", "ADCS-Enroll-Web-Svc", "ADCS-Web-Enrollment", "Web-Server", "Web-WebServer", "Web-Common-Http", "Web-Http-Errors", "Web-Default-Doc", "Web-Static-Content", "Web-Dir-Browsing", "Web-Http-Redirect", "Web-Performance", "Web-Stat-Compression", "Web-Dyn-Compression", "Web-Security", "Web-Filtering", "Web-Client-Auth", "Web-Cert-Auth", "Web-Digest-Auth", "Web-IP-Security", "Web-Basic-Auth", "Web-CertProvider", "Web-Url-Auth", "Web-Windows-Auth", "Web-Health", "Web-Http-Logging", "Web-Http-Tracing", "Web-Request-Monitor", "Web-Custom-Logging", "Web-ODBC-Logging", "Web-Log-Libraries", "Web-Mgmt-Tools", "Web-Mgmt-Console", "Web-Scripting-Tools", "Web-Mgmt-Service"
+        $IISFeatures = "Web-Server", "Web-WebServer", "Web-Common-Http", "Web-Http-Errors", "Web-Default-Doc", "Web-Static-Content", "Web-Dir-Browsing", "Web-Http-Redirect", "Web-Performance", "Web-Stat-Compression", "Web-Dyn-Compression", "Web-Security", "Web-Filtering", "Web-Client-Auth", "Web-Cert-Auth", "Web-Digest-Auth", "Web-IP-Security", "Web-Basic-Auth", "Web-CertProvider", "Web-Url-Auth", "Web-Windows-Auth", "Web-Health", "Web-Http-Logging", "Web-Http-Tracing", "Web-Request-Monitor", "Web-Custom-Logging", "Web-ODBC-Logging", "Web-Log-Libraries", "Web-Mgmt-Tools", "Web-Mgmt-Console", "Web-Scripting-Tools", "Web-Mgmt-Service"
         try {
             Install-WindowsFeature -Name $IISFeatures -IncludeManagementTools
         }
