@@ -72,7 +72,7 @@ if ($OSType -eq 'Server2016') {
 }
 
 if ($OSType -eq 'Server2019') {
-    if (Test-Path -Path $MasterVHDXServer2016core) {
+    if (Test-Path -Path $MasterVHDXServer2019) {
         Write-Verbose -Message 'Master_2019 found.'
     }
     else {
