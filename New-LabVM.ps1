@@ -48,7 +48,7 @@ $VHDXPath = "D:\$VMName\$VMName.vhdx"
 $VHDXSize = 127GB
 $MasterVHDXServer2012R2 = "D:\MASTER\master_2012R2.vhdx"
 $MasterVHDXServer2016 = "D:\MASTER\master_2016.vhdx"
-$MasterVHDXServer2016Core = "D:\MASTER\master_2019.vhdx"
+$MasterVHDXServer2019 = "D:\MASTER\master_2019.vhdx"
 
 $WarningPreference = 'Stop'
 
