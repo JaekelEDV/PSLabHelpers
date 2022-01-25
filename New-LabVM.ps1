@@ -2,7 +2,7 @@
 .SYNOPSIS
     New-LabVM quickly creates VM on Hyper-V for Lab Environments
 .DESCRIPTION
-    This Script creates a Windows Server 2012R2, Windows Server 2016 or Windows Server 2019 Generation 2 VM
+    This Script creates a Windows Server 2016 or Windows Server 2022 Generation 2 VM
     with differencing disk based on *existing* Master-VHDx.
     It connects to an existing external vSwitch to activate the License.
     Automatic checkpoints are disabled.
@@ -10,7 +10,7 @@
     Be sure to adjust paths in the variables according to your environment -
     this script relies heavily on personal surroundings.
 .PARAMETER OSType
-    Choice between Server2012R2, Server 2016 or Server 2019.
+    Choice between Server 2016 or Server 2022.
     All depending on existing Master-VHDx.
 .PARAMETER VMName
     Sets the Name of the VM to create.
@@ -32,35 +32,19 @@ param (
         Mandatory = $true,
         Position=1
     )]
-    [ValidateSet('Server2012R2', 'Server2016', 'Server2019')]
+    [ValidateSet('Server2016', 'Server2022')]
     [string]$OSType
 )
 
-<#$VMPath = 'C:\VMs\$VMName'
-$VHDXPath = 'C:\VMs\$VMName\$VMName.vhdx'
-$VHDXSize = 127GB
-$MasterVHDXServer2012R2 = 'C:\VMs\MASTER\master_2012R2.vhdx'
-$MasterVHDXServer2016 = 'C:\VMs\MASTER\master_2016.vhdx'
-$MasterVHDXServer2019 = 'C:\VMs\MASTER\master_2019.vhdx'
-#>
 $VMPath = "D:\$VMName"
 $VHDXPath = "D:\$VMName\$VMName.vhdx"
 $VHDXSize = 127GB
-$MasterVHDXServer2012R2 = "D:\MASTER\master_2012R2.vhdx"
 $MasterVHDXServer2016 = "D:\MASTER\master_2016.vhdx"
-$MasterVHDXServer2019 = "D:\MASTER\master_2019.vhdx"
+$MasterVHDXServer2022 = "D:\MASTER\master_2022.vhdx"
 
 $WarningPreference = 'Stop'
 
 #region Check if chosen Master.vhdx exists
-if ($OSType -eq 'Server2012R2') {
-    if (Test-Path -Path $MasterVHDXServer2012R2) {
-        Write-Verbose -Message 'Master_2012R2 found.'
-    }
-    else {
-        Write-Warning -Message 'Cannot find master_2012R2.vhdx. Check filename or create it.'
-    }
-}
 
 if ($OSType -eq 'Server2016') {
     if (Test-Path -Path $MasterVHDXServer2016) {
@@ -71,12 +55,12 @@ if ($OSType -eq 'Server2016') {
     }
 }
 
-if ($OSType -eq 'Server2019') {
-    if (Test-Path -Path $MasterVHDXServer2019) {
-        Write-Verbose -Message 'Master_2019 found.'
+if ($OSType -eq 'Server2022') {
+    if (Test-Path -Path $MasterVHDXServer2022) {
+        Write-Verbose -Message 'Master_2022 found.'
     }
     else {
-        Write-Warning -Message 'Cannot find master_2019.vhdx. Check filename or create it.'
+        Write-Warning -Message 'Cannot find master_2022.vhdx. Check filename or create it.'
     }
 }
 #endregion
@@ -91,6 +75,7 @@ $VMParams = @{
 }
 
 New-VM @VMParams
+Write-Verbose -Message "Created VM $VMName in $VMPath."
 #endregion
 
 #region Set VM
@@ -103,19 +88,11 @@ $VMConfig = @{
 }
 
 Set-VM @VMConfig
+Write-Verbose -Message "Setting VM $VMName as desired."
 #endregion
 
 #region Create differencing Disks according to OSType-Selection
 switch ($OSType) {
-    'Server2012R2' {
-        $2012R2VM = @{
-            Differencing = $true
-            ParentPath   = $MasterVHDXServer2012R2
-            Path         = $VHDXPath
-            SizeBytes    = $VHDXSize
-        }
-        New-VHD @2012R2VM
-    }
     'Server2016' {
         $2016VM = @{
             Differencing = $true
@@ -124,15 +101,17 @@ switch ($OSType) {
             SizeBytes    = $VHDXSize
         }
         New-VHD @2016VM
+        Write-Verbose -Message "Created differencing disk for $VMName."
     }
-    'Server2019' {
-        $2019VM = @{
+    'Server2022' {
+        $2022VM = @{
             Differencing = $true
-            ParentPath   = $MasterVHDXServer2019
+            ParentPath   = $MasterVHDXServer2022
             Path         = $VHDXPath
             SizeBytes    = $VHDXSize
         }
-        New-VHD @2019VM
+        New-VHD @2022VM
+        Write-Verbose -Message "Created differencing disk for $VMName."
     }
 }
 #endregion
