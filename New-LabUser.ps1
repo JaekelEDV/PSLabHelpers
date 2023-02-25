@@ -1,157 +1,148 @@
-﻿<#
+<#
       .SYNOPSIS
-      Function New-LabUsers creates User-Accounts and Groups for Lab Environments based on a csv-file.
+      New-LabUser.ps1 creates User-Accounts and Groups for Lab Environments based on a csv-file.
       .DESCRIPTION
       This Script creates User-Accounts for a Lab based on a csv-file.
-      Be sure to save the csv as UTF.8. I prefer working with CSVed by Sam Francke, see here: http://csved.sjfrancke.nl/
-      Right now the script will look for the headers Name,SamAccountName,UPN,GivenName,Surname,DisplayName,EmailAddress,Group,Department.
+      Right now the script will look for the headers Name,SamAccountName,UPN,GivenName,Surname,DisplayName,EmailAddress and GroupName.
       Of course you might add others as well. Adjust the csv and the hashtable for New-ADUser accordingly.
       The users will get a Password which you might set in the parameter section below.
       The Script has two mandatory Parameters (see the parameters help section):
       You must point to your csv-file and you must specify a OU in which the users will be created. If this OU doesn't exist, the script will create it for you.
-      If users will be found in the csv that already exist in the AD, you'll get an info but the script will continue.
-      If there is a group-header in your csv, this group will also be created and the user will join this group.
-      You'll find a corresponding csv for a Lab-Domain named test.local and the most up-to-date version of this script at https://gist.github.com/JaekelEDV.
-      Rock it!
+      You can simply pass a name, no need to type a distinguished name.
+
       .PARAMETER CSVPath
       Please enter the Path where your csv-file lives.
+
       .PARAMETER OU
       Please enter the Name of the OU where your new users shall live. There is no need of using the DistinguishedName - just write a name.
+
       .EXAMPLE
-      New-LabUser -CSVPath .\testusers.csv -OU Foo
+      New-LabUser -CSVPath .\lab_users.csv -OU Foo
+
       .NOTES
       Author: Oliver Jäkel | oj@jaekel-edv.de | @JaekelEDV
 #>
-Function New-LabUser {
 
-    [CmdletBinding()]
-    param (
-        [Parameter(Mandatory = $true)]
-        [string] $CSVPath,
-        [Parameter(Mandatory = $true)]
-        [string] $OU
-    )
-    #region (=BEGIN) Starting Transcript, setting Variables checking if AD-Module is present and creating desired OU.
+[CmdletBinding()]
+param (
+    [Parameter(Mandatory = $true,
+        HelpMessage="Enter just the name of the OU!")]
+    [string] $CSVPath,
+    [Parameter(Mandatory = $true,
+        HelpMessage="Enter the path to the csv-file!!")]
+    [string] $OU
+)
 
-    Begin {
-        #Set-StrictMode -Version 2.0 - Do not uncomment this. Just for further testing and developing.
+#region Setting some variables and starting a transcript
+$OU='Benutzer'
+$csvpath = 'C:\lab_user.csv'
 
-        Start-Transcript -Path $env:userprofile\Desktop\LOG-NewLabUser.txt -IncludeInvocationHeader
+Start-Transcript -Path $env:userprofile\Desktop\LOG-NewLabUser.txt -IncludeInvocationHeader
 
-        $ErrorActionPreference = 'SilentlyContinue' #Just to suppress the ugly ErrorMessages if an object already exists.
-        $LoadedModules = (Get-Module).Name
-        $CSVUser = Import-Csv -LiteralPath $CSVPath
-        $Password = (ConvertTo-SecureString -String 'Pa$$w0rd' -AsPlainText -Force) #Change the Password here if you like.
+$CSVUser = Import-Csv -LiteralPath $CSVPath
+$Password = (ConvertTo-SecureString -String 'Pa$$w0rd' -AsPlainText -Force) #Change the Password here if you like.
+$Domain = (Get-ADDomain).DistinguishedName
+#endregion
 
-        if ($LoadedModules -notcontains 'ActiveDirectory') {
-            Import-Module -Name ActiveDirectory
-        }
-        else {
-            Write-Verbose -Message 'ActiveDirectory Module already loaded'
-        }
-
-        $VerbosePreference = 'Continue' #No need to type -verbose when running the function.
-        $Domain = (Get-ADDomain).DistinguishedName
-
-        Try {
-            New-ADOrganizationalUnit -Name $OU -ProtectedFromAccidentalDeletion $false -Verbose
-        }
-        Catch {
-            Write-Verbose -Message "OU $OU already exists!"
-        }
-
-        $DestOU = (Get-ADOrganizationalUnit -Identity "ou=$OU,$Domain")#We need the DN in the next steps!
-    }
-    #endregion (=END BEGIN)
-
-    #region (=PROCESS) Importing csv-file, creating ADUsers and ADGroups and adding Users to Groups (when defined in csv)
-
-    Process {
-        foreach ($user in $CSVUser) {
-            if (Get-ADUser -Filter * -Properties SamAccountName |
-                Where-Object {$_.SamAccountName -eq $User.SamAccountName}) {
-                Write-Verbose -Message "User $($User.SamAccountName) already exists!"
-            }
-
-            else {
-
-                $hash = @{
-                    Name              = $user.Name
-                    Displayname       = "$($user.GivenName) $($user.Surname)"
-                    Path              = $DestOU
-                    Samaccountname    = $user.SamAccountName
-                    UserPrincipalName = $user.UPN
-                    Surname           = $user.Surname
-                    GivenName         = $user.GivenName
-                    EmailAddress      = $user.EmailAddress
-                    Department        = $user.Department
-                    AccountPassword   = $Password
-                    Enabled           = $True
-                }
-
-                New-ADUser @hash -PassThru
-            }
-
-            if (Get-ADGroup -Filter * -Properties SamAccountName |
-                Where-Object {$_.SamAccountName -eq $User.Group}) {
-                Write-Verbose -Message "Group $($User.Group) already exists!"
-
-                $groups = ($user).Department
-                $members = Get-ADUser -Filter * -SearchBase $DestOU -Properties department |
-                Where-Object {$_.department -eq $groups}
-
-                Add-ADGroupMember -Identity $groups -Members $members
-            }
-
-            else {
-
-                $newADGroupSplat = @{
-                    Name           = $user.Group
-                    Path           = $DestOU
-                    Verbose        = $true
-                    GroupScope     = 'Global'
-                    SamAccountName = $user.Group
-                    GroupCategory  = 'Security'
-                    DisplayName    = $user.Group
-                }
-
-                New-ADGroup @newADGroupSplat
-
-                $groups = ($user).Department
-                $members = Get-ADUser -Filter * -SearchBase $DestOU -Properties department |
-                Where-Object {$_.department -eq $groups}
-
-                Add-ADGroupMember -Identity $groups -Members $members
-            }
-        }
-    }
-    #endregion (=END PROCESS)
-
-    #region (=END) Create log with User, Groups SID Info, stopping Transcript, cleaning.
-
-    End {
-        Write-Verbose -Message 'Ready! All Users and Groups successfully created!'
-        Write-Verbose -Message 'Writing another log-file: User, SID and GroupMembership'
-
-        $log = "$env:userprofile\Desktop\UsersSIDGroups.txt"
-
-        (Get-ADUser -Filter * -SearchBase $DestOU |
-            Select-Object Name, SID) |
-        Out-File -FilePath $log
-
-        (Get-ADGroup -Filter * -SearchBase $DestOU |
-            Select-Object Name, SID) |
-        Out-File -FilePath $log
-
-        (Get-ADUser -Filter * -SearchBase $DestOU -Properties * |
-            Select-Object Name, MemberOf) |
-        Out-File -FilePath $log
-
-        $VerbosePreference = 'SilentlyContinue'
-        $ErrorActionPreference = 'Continue'
-
-        Stop-Transcript
-    }
-    #endregion (=END END)
-
+#region Creating the OU from parameter $OU
+Try {
+    New-ADOrganizationalUnit -Name $OU -ProtectedFromAccidentalDeletion $false
 }
+Catch {
+    $error[0]
+}
+
+$DestOU = (Get-ADOrganizationalUnit -Identity "ou=$OU,$Domain").DistinguishedName
+
+Write-Host "Creating OU $DestOU..." -ForegroundColor Yellow
+Write-Host ""
+Write-Host "Creating Users..." -ForegroundColor Yellow
+Write-Host ""
+#endregion
+
+#region Creating the users from csv
+try{
+    foreach ($user in $CSVUser) {
+        $params = @{
+            Name              = $user.Name
+            Displayname       = "$($user.GivenName) $($user.Surname)"
+            Path              = $DestOU
+            Samaccountname    = $user.SamAccountName
+            UserPrincipalName = $user.UPN
+            Surname           = $user.Surname
+            GivenName         = $user.GivenName
+            EmailAddress      = $user.EmailAddress
+            Department        = $user.Department
+            AccountPassword   = $Password
+            Enabled           = $True
+        }
+        New-ADUser @params -PassThru
+    }
+}
+
+Catch {
+    $error[0]
+}
+
+Write-Host "Creating Groups..." -ForegroundColor Yellow
+Write-Host ""
+#endregion
+
+#region Creating the groups from csv
+try{
+    $CSVGroups = Import-Csv -LiteralPath $CSVPath | Select-Object 'GroupName' -Unique
+
+    foreach ($group in $CSVGroups) {
+
+        $params = @{
+            Name           = $group.groupName
+            Path           = $DestOU
+            GroupScope     = 'Global'
+            SamAccountName = $group.groupName
+            GroupCategory  = 'Security'
+            DisplayName    = $group.groupName
+        }
+
+        New-ADGroup @params
+        Write-Host "Creating Group "$group.groupName"..." -ForegroundColor Green
+        Write-Host ""
+    }
+}
+
+Catch {
+    $error[0]
+}
+
+Write-Host "Adding Users to Groups..." -ForegroundColor Yellow
+Write-Host ""
+#endregion
+
+#region Adding the users to the corresponding groups
+try{
+    $User2Group = Import-Csv -Path $CSVPath | Select-Object GivenName, GroupName
+
+    foreach ($user in $User2Group) {
+
+        Add-ADGroupMember -Identity $user.groupname -Members $user.GivenName
+        Write-Host "Adding User "$user.GivenName" to Group "$user.groupname"..." -ForegroundColor Green
+    }
+}
+
+Catch {
+    $error[0]
+}
+#endregion
+
+#region Writing some logs and stopping transcript
+$log = "$env:userprofile\Desktop\UsersSIDGroups.txt"
+
+(Get-ADUser -Filter * -SearchBase $DestOU -Properties * |
+Select-Object Name, MemberOf, SID) |
+Out-File -FilePath $log
+
+(Get-ADGroup -Filter * -SearchBase $DestOU |
+Select-Object Name, SID) |
+Out-File -FilePath $log -Append
+
+Stop-Transcript
+#endregion
